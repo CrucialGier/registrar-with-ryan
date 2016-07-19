@@ -1,6 +1,13 @@
 <h2>Student Registrar</h2>
+<hr>
+<h3>Courses</h3>
 <ul>
-@foreach (var course in @Course.GetAll())
+@foreach (var course in @Model)
 {
-  <li>
+  <li><a href="course/@course.GetId()">@course.GetCourseNumber() @course.GetName()</a></li>
 }
+</ul>
+
+<a href="/student/new">Register a New Student</a>
+<a href="/course/new">Add a New Course</a>
+<a href="/students/all">View Students</a>

@@ -10,11 +10,11 @@ namespace Registrar
     private string _name;
     private DateTime _dueDate = new DateTime();
 
-    public Student(string Name, DateTime DueDate, int Id = 0)
+    public Student(string Name, DateTime EnrollmentDate, int Id = 0)
     {
       _id = Id;
       _name = Name;
-      _dueDate = DueDate;
+      _dueDate = EnrollmentDate;
     }
 
     public override bool Equals(System.Object otherStudent)
@@ -28,7 +28,7 @@ namespace Registrar
           Student newStudent = (Student) otherStudent;
           bool idEquality = this.GetId() == newStudent.GetId();
           bool nameEquality = this.GetName() == newStudent.GetName();
-          bool dueEquality = this.GetDueDate() == newStudent.GetDueDate();
+          bool dueEquality = this.GetEnrollmentDate() == newStudent.GetEnrollmentDate();
           return (idEquality && nameEquality && dueEquality);
         }
     }
@@ -45,13 +45,13 @@ namespace Registrar
     {
       _name = newName;
     }
-    public DateTime GetDueDate()
+    public DateTime GetEnrollmentDate()
     {
       return _dueDate;
     }
-    public void SetDueDate(DateTime newDueDate)
+    public void SetEnrollment(DateTime newEnrollmentDate)
     {
-      _dueDate = newDueDate;
+      _dueDate = newEnrollmentDate;
     }
   public static List<Student> GetAll()
   {
@@ -68,8 +68,8 @@ namespace Registrar
     {
       int studentId = rdr.GetInt32(0);
       string studentName = rdr.GetString(1);
-      DateTime studentDueDate = rdr.GetDateTime(2);
-      Student newStudent = new Student(studentName, studentDueDate, studentId);
+      DateTime studentEnrollmentDate = rdr.GetDateTime(2);
+      Student newStudent = new Student(studentName, studentEnrollmentDate, studentId);
       AllStudents.Add(newStudent);
     }
     if (rdr != null)
@@ -88,15 +88,15 @@ namespace Registrar
     SqlDataReader rdr;
     conn.Open();
 
-    SqlCommand cmd = new SqlCommand("INSERT INTO students (name, enrollment_date) OUTPUT INSERTED.id VALUES (@StudentName, @StudentDueDate);", conn);
+    SqlCommand cmd = new SqlCommand("INSERT INTO students (name, enrollment_date) OUTPUT INSERTED.id VALUES (@StudentName, @StudentEnrollmentDate);", conn);
 
     SqlParameter nameParameter = new SqlParameter();
     nameParameter.ParameterName = "@StudentName";
     nameParameter.Value = this.GetName();
 
     SqlParameter dueDateParameter = new SqlParameter();
-    dueDateParameter.ParameterName = "@StudentDueDate";
-    dueDateParameter.Value = this.GetDueDate();
+    dueDateParameter.ParameterName = "@StudentEnrollmentDate";
+    dueDateParameter.Value = this.GetEnrollmentDate();
 
     cmd.Parameters.Add(nameParameter);
     cmd.Parameters.Add(dueDateParameter);
@@ -132,15 +132,15 @@ namespace Registrar
 
     int foundStudentId = 0;
     string foundStudentName = null;
-    DateTime foundStudentDueDate = new DateTime(0);
+    DateTime foundStudentEnrollmentDate = new DateTime(0);
 
     while(rdr.Read())
     {
       foundStudentId = rdr.GetInt32(0);
       foundStudentName = rdr.GetString(1);
-      foundStudentDueDate = rdr.GetDateTime(2);
+      foundStudentEnrollmentDate = rdr.GetDateTime(2);
     }
-    Student foundStudent = new Student(foundStudentName, foundStudentDueDate, foundStudentId);
+    Student foundStudent = new Student(foundStudentName, foundStudentEnrollmentDate, foundStudentId);
 
     if (rdr != null)
     {
@@ -184,58 +184,91 @@ namespace Registrar
       SqlDataReader rdr = null;
       conn.Open();
 
-      SqlCommand cmd = new SqlCommand("SELECT course_id FROM courses_students WHERE student_id = @StudentId;", conn);
+      SqlCommand cmd = new SqlCommand("SELECT courses.* FROM students JOIN courses_students ON(students.id = courses_students.student_id) JOIN courses ON(courses_students.course_id = courses.id) WHERE students.id = @StudentId;", conn);
 
       SqlParameter studentIdParameter = new SqlParameter();
       studentIdParameter.ParameterName = "@StudentId";
       studentIdParameter.Value = this.GetId();
+
       cmd.Parameters.Add(studentIdParameter);
 
       rdr = cmd.ExecuteReader();
 
-      List<int> courseIds = new List<int> {};
+      List<Course> courses = new List<Course> {};
 
       while (rdr.Read())
       {
-        int courseId = rdr.GetInt32(0);
-        courseIds.Add(courseId);
+        int thisCourseId = rdr.GetInt32(0);
+        string courseName = rdr.GetString(1);
+        string courseNumber = rdr.GetString(2);
+        Course foundCourse = new Course(courseName, courseNumber, thisCourseId);
+        courses.Add(foundCourse);
       }
       if (rdr != null)
       {
         rdr.Close();
-      }
-
-      List<Course> courses = new List<Course> {};
-
-      foreach (int courseId in courseIds)
-      {
-        SqlDataReader queryReader = null;
-        SqlCommand courseQuery = new SqlCommand("SELECT * FROM courses WHERE id = @CourseId;", conn);
-
-        SqlParameter courseIdParameter = new SqlParameter();
-        courseIdParameter.ParameterName = "@CourseId";
-        courseIdParameter.Value = courseId;
-        courseQuery.Parameters.Add(courseIdParameter);
-
-        queryReader = courseQuery.ExecuteReader();
-        while (queryReader.Read())
-        {
-          int thisCourseId = queryReader.GetInt32(0);
-          string courseName = queryReader.GetString(1);
-          string courseNumber = queryReader.GetString(2);
-          Course foundCourse = new Course(courseName, courseNumber, thisCourseId);
-          courses.Add(foundCourse);
-        }
-        if (queryReader != null)
-        {
-          queryReader.Close();
-        }
       }
       if (conn != null)
       {
         conn.Close();
       }
       return courses;
+    }
+    public void Update()
+    {
+      SqlConnection conn = DB.Connection();
+      SqlDataReader rdr;
+      conn.Open();
+
+      SqlCommand cmd = new SqlCommand("UPDATE students SET name = @StudentName WHERE id = @QueryId; UPDATE students SET enrollment_date = @StudentEnrollmentDate WHERE id = @QueryId;", conn);
+
+      SqlParameter nameParameter = new SqlParameter();
+      nameParameter.ParameterName = "@StudentName";
+      nameParameter.Value = this.GetName();
+
+      SqlParameter dueDateParameter = new SqlParameter();
+      dueDateParameter.ParameterName = "@StudentEnrollmentDate";
+      dueDateParameter.Value = this.GetEnrollmentDate();
+
+      SqlParameter queryIdParameter = new SqlParameter();
+      queryIdParameter.ParameterName = "@QueryId";
+      queryIdParameter.Value = this.GetId();
+
+      cmd.Parameters.Add(nameParameter);
+      cmd.Parameters.Add(dueDateParameter);
+      cmd.Parameters.Add(queryIdParameter);
+
+      rdr = cmd.ExecuteReader();
+
+      while(rdr.Read())
+      {
+        this._id = rdr.GetInt32(0);
+      }
+      if (rdr != null)
+      {
+        rdr.Close();
+      }
+      if (conn != null)
+      {
+        conn.Close();
+      }
+    }
+    public static void Delete(int QueryId)
+    {
+      SqlConnection conn = DB.Connection();
+      conn.Open();
+      SqlCommand cmd = new SqlCommand("DELETE FROM students WHERE id = @StudentId;", conn);
+      SqlParameter studentIdParameter = new SqlParameter();
+      studentIdParameter.ParameterName = "@StudentId";
+      studentIdParameter.Value = QueryId.ToString();
+      cmd.Parameters.Add(studentIdParameter);
+
+      cmd.ExecuteNonQuery();
+
+      if (conn != null)
+      {
+        conn.Close();
+      }
     }
 
     public static void DeleteAll()

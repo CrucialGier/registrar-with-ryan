@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Edit Students</title>
+  </head>
+  <body>
+    <h2>New Student</h2>
+    <form action="/student/new" method="post">
+      <label for="studentName">New Student Name</label>
+      <input type="text" name="studentName" required>
+      <label for="studentEnrollment">New Student Enrollment Date</label>
+      <input type="date" name="studentEnrollment" required>
+      <button type="submit" name="button">Submit New Student</button>
+    </form>
+    <h2>Edit Students</h2>
+    <table>
+      <th>
+        <td>Student Name</td>
+        <td>Enrollment Date</td>
+      </th>
+      @foreach(var student in Model)
+      {
+      <tr>
+        <td>@student.GetName()</td>
+        <td>@student.GetEnrollmentDate()</td>
+        <td><form action="/student/edit/name/@student.GetId()" method="post">
+          <input type="text" name="newName">
+          <button type="submit" name="button">Update Name</button>
+        </form></td>
+        <td><form action="/student/edit/enrollment/@student.GetId()" method="post">
+          <input type="date" name="newEnrollment">
+          <button type="submit" name="button">Update Enrollment</button>
+        </form></td>
+        <td><a href="/student/delete/@student.GetId()">Delete This Student</a></td>
+      </tr>
+      }
+    </table>
+  </body>
+</html>
