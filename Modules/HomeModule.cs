@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using Nancy;
-using ToDoList.Objects;
 
 namespace Registrar
 {
